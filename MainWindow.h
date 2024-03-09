@@ -42,6 +42,9 @@ class customGLWidget;
 class customMdiSubWindow;
 class gl_entity_ctx;
 
+class ahrsDialog;
+class qcpPlotView;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -97,6 +100,8 @@ private:
 #endif
 #endif
 
+    void closeWindow(QWidget *w);
+
 private:
     Ui::MainWindow *ui;
 
@@ -112,5 +117,7 @@ private:
 #ifdef USE_MAP_VIEW
     customMapView *_mapWidget;
 #endif
+
+    ahrsDialog *_ahrs;
 };
 #endif // MAINWINDOW_H

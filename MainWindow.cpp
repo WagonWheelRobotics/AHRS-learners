@@ -63,11 +63,15 @@ SOFTWARE.
 #include "qcpPlotView.h"
 #endif
 
+#include "ahrsDialog.h"
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    _ahrs = nullptr;
 
     _glWidget = nullptr;
     _stockModelPending = nullptr;
@@ -99,6 +103,11 @@ MainWindow::MainWindow(QWidget *parent)
 #ifdef USE_MAP_VIEW
     createMapView();
 #endif
+
+    ui->actionSerial_port->setCheckable(true);
+    connect(ui->menuComm, &QMenu::aboutToShow, this, [=](){
+        ui->actionSerial_port->setChecked(_ahrs!=nullptr);
+    });
 
     connect(ui->menuView, &QMenu::aboutToShow, this, [=](){
         ui->action3D_View->setChecked(_glWidget->parentWidget()->isVisible());
@@ -335,29 +344,94 @@ void MainWindow::create_qcp_example_realtime()
     tqcp->setInterval(50);
     tqcp->start();
 }
+
 #endif
 #endif
 #endif
 
+
+void MainWindow::closeWindow(QWidget *w)
+{
+    for(auto &i:_mdi)
+    {
+        if(i->widget()==w)
+        {
+            ui->mdiArea->removeSubWindow(w);
+            _mdi.removeOne(i);
+            i->hide();
+            i->deleteLater();
+            w->deleteLater();
+        }
+    }
+    for(auto &i:_floating)
+    {
+        if(i->widget()==w)
+        {
+            _floating.removeOne(i);
+            i->hide();
+            i->deleteLater();
+            w->deleteLater();
+        }
+    }
+}
 
 #include "serialPortDialog.h"
 #include <QSerialPort>
 void MainWindow::on_actionSerial_port_triggered()
 {
-    serialPortDialog dlg(this);
-    if(dlg.exec()==QDialog::Accepted)
+    if(_ahrs!=nullptr)
     {
-        auto port = dlg.get(this);
-        if(port->open(QIODevice::ReadWrite))
+        for(auto &i: _ahrs->plots())
         {
-            qDebug()<< "Serial port is opened" << port->portName();
-
-
-            port->close();  //this is just example code
+            closeWindow(i);
         }
-        else
+        closeWindow(_ahrs);
+        _ahrs = nullptr;
+    }
+    else
+    {
+        serialPortDialog dlg(this);
+        if(dlg.exec()==QDialog::Accepted)
         {
-            qDebug()<< "Serial port open failed" << port->portName();
+            auto port = dlg.get(this);
+            if(port->open(QIODevice::ReadWrite))
+            {
+                qDebug()<< "Serial port is opened" << port->portName();
+
+                QList<qcpPlotView*> plots;
+                QStringList header[3];
+
+                header[0] << "Time" << "GyroX" << "GyroY" << "GyroZ";
+                header[1] << "Time" << "AcelX" << "AcelY" << "AcelZ";
+                header[2] << "Time" << "Roll" << "Pitch" << "Yaw";
+
+                for(int i=0;i<3;i++)
+                {
+                    QVariantMap  m;
+                    m["headers"] = header[i];
+                    m["realtime"] = true;
+
+                    auto p=new qcpPlotView(m, this);
+                    auto sub=new customMdiSubWindow(p->widget(), this);
+                    ui->mdiArea->addSubWindow(sub);
+                    sub->setWindowTitle(QString("Plot View %1").arg(i+1));
+                    sub->show();
+                    _mdi.append(sub);
+                    plots.append(p);
+                }
+
+                _ahrs = new ahrsDialog(port,plots,this);
+                auto sub=new customMdiSubWindow(_ahrs, this);
+                ui->mdiArea->addSubWindow(sub);
+                sub->setWindowTitle("AHRS");
+                sub->show();
+                _mdi.append(sub);
+
+            }
+            else
+            {
+                qDebug()<< "Serial port open failed" << port->portName();
+            }
         }
     }
 }
