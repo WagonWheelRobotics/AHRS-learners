@@ -64,6 +64,7 @@ SOFTWARE.
 #endif
 
 #include "ahrsDialog.h"
+#include "rot.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -71,6 +72,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    _pose = nullptr;
     _ahrs = nullptr;
 
     _glWidget = nullptr;
@@ -162,6 +164,14 @@ void MainWindow::create3DView()
                 if(qobject_cast<gl_entity_ctx*>(o) == _stockModelPending)
                 {
                     _stockModel = _stockModelPending;
+
+                    if(_stockModel!=nullptr)
+                    {
+                        QByteArray dummy;
+                        dummy.append((uint8_t)0x00);
+                        _pose = new gl_poses_entity(_stockModel);
+                        _glWidget->delayLoad(_pose, dummy);
+                    }
 
 #ifdef EXAMPLE_CODE_3D
                     //test code
@@ -398,19 +408,26 @@ void MainWindow::on_actionSerial_port_triggered()
             {
                 qDebug()<< "Serial port is opened" << port->portName();
 
+                _ahrs = new ahrsDialog(port,this);
+
                 QList<qcpPlotView*> plots;
                 QStringList header[3];
-
                 header[0] << "Time" << "GyroX" << "GyroY" << "GyroZ";
                 header[1] << "Time" << "AcelX" << "AcelY" << "AcelZ";
-                header[2] << "Time" << "Roll" << "Pitch" << "Yaw";
+                header[2] = _ahrs->output();
+
+                QVector<double> range[3];
+                range[0] << -100.0 << 100.0;
+                range[1] << -2.0 << 2.0;
+                range[2] << -M_PI << M_PI;
 
                 for(int i=0;i<3;i++)
                 {
                     QVariantMap  m;
                     m["headers"] = header[i];
                     m["realtime"] = true;
-
+                    m["y_min"] = range[i].at(0);
+                    m["y_max"] = range[i].at(1);
                     auto p=new qcpPlotView(m, this);
                     auto sub=new customMdiSubWindow(p->widget(), this);
                     ui->mdiArea->addSubWindow(sub);
@@ -420,13 +437,24 @@ void MainWindow::on_actionSerial_port_triggered()
                     plots.append(p);
                 }
 
-                _ahrs = new ahrsDialog(port,plots,this);
+                _ahrs->setPlots(plots);
+
+                connect(_ahrs, &ahrsDialog::updatePose, this, [=](float *euler){
+                    pose_t pose;
+                    pose.p = QVector3D();
+                    QVector3D rpy(euler[0],euler[1],euler[2]);
+                    rot::euler_to_quat(pose.q,rpy);
+                    _pose->setPose(0,pose);
+                    _glWidget->update();
+                });
+
                 auto sub=new customMdiSubWindow(_ahrs, this);
                 ui->mdiArea->addSubWindow(sub);
                 sub->setWindowTitle("AHRS");
                 sub->show();
                 _mdi.append(sub);
 
+                ui->mdiArea->tileSubWindows();
             }
             else
             {
@@ -447,6 +475,8 @@ void MainWindow::on_actionTCP_Client_triggered()
     }
 }
 
-
-
+void MainWindow::on_actionTile_triggered()
+{
+    ui->mdiArea->tileSubWindows();
+}
 

@@ -42,6 +42,9 @@ private:
 
 private:
     int _x_item;
+    QVector<double> _key_hold;
+    QVector< QVector<double> > _data_hold;
+    int _skipReplot;
 };
 
 #endif // QCPPLOTVIEW_H

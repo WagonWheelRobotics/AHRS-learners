@@ -50,6 +50,7 @@ int gl_poses_entity::load_mem(const uint8_t *buf, size_t length)
      _localOrigin = QVector3D(0.0f,0.0f,0.0f); // East-North-Up
      setObjectName("pose test");
 
+#if 0
     QVector<float> p;
     if(!buf[0])
     {   // x,y,z r,p,y
@@ -79,7 +80,13 @@ int gl_poses_entity::load_mem(const uint8_t *buf, size_t length)
         _poses.append(pose);
         ret++;
     }
-
+#endif
+    pose_t pose;
+    pose.p=QVector3D(0.0f,0.0f,0.0f);
+    QVector3D rpy(0.0f,0.0f,0.0f);
+    rot::euler_to_quat(pose.q,rpy);
+    _poses.append(pose);
+    ret++;
     return ret;
 }
 
@@ -155,4 +162,12 @@ void gl_poses_entity::draw_gl(gl_draw_ctx_t &draw)
 QVector3D gl_poses_entity::getCenter()
 {
     return _poses.front().p;
+}
+
+void gl_poses_entity::setPose(int index, const pose_t &pose)
+{
+    if(0<=index && index<_poses.size())
+    {
+        _poses[index]=pose;
+    }
 }

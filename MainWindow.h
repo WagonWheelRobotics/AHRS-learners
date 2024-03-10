@@ -44,6 +44,7 @@ class gl_entity_ctx;
 
 class ahrsDialog;
 class qcpPlotView;
+class gl_poses_entity;
 
 class MainWindow : public QMainWindow
 {
@@ -87,6 +88,8 @@ private slots:
     void on_actionMap_View_triggered();
 #endif
 
+    void on_actionTile_triggered();
+
 private:
 
 #ifdef USE_PLOT_VIEW
@@ -109,6 +112,8 @@ private:
     customGLWidget *_glWidget;
     gl_entity_ctx *_stockModelPending;
     gl_entity_ctx *_stockModel;
+
+    gl_poses_entity *_pose;
 #endif
 
     QList<customFloatingWindow*> _floating;

@@ -4,17 +4,22 @@
 #include "ubxDecoder.h"
 #include "imuPacket.h"
 #include "qcpPlotView.h"
+#include "imuCore.h"
+#include "ahrsEulerCF.h"
 
 #include <QSerialPort>
 #include <QDebug>
 
-ahrsDialog::ahrsDialog(QSerialPort *port, QList<qcpPlotView *> plots, QWidget *parent) :
+ahrsDialog::ahrsDialog(QSerialPort *port, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::ahrsDialog)
 {
     ui->setupUi(this);
-    _plots = plots;
     _port = port;
+
+    _imu = new imuCore;
+    _ahrs = new ahrsEulerCF(1.0f/200.0f);
+
     _decoder = new ubxDecoder('W','2',65000);
     connect(_port, SIGNAL(readyRead()), this, SLOT(ready()));
 }
@@ -26,10 +31,15 @@ ahrsDialog::~ahrsDialog()
     _port->deleteLater();
     delete _decoder;
 
+    delete _imu;
+
     qDebug()<<"ahrsDialog::~ahrsDialog";
 }
 
-
+void ahrsDialog::setPlots(QList<qcpPlotView *> &plots)
+{
+    _plots = plots;
+}
 
 void ahrsDialog::ready()
 {
@@ -52,8 +62,37 @@ void ahrsDialog::ready()
                 ui->leAy->setText(QString("%1").arg(p->imu[4]));
                 ui->leAz->setText(QString("%1").arg(p->imu[5]));
 
+                float corImu[6];
+                _imu->get(p->imu, corImu);
+
+                std::vector<float> output;
+                _ahrs->update(corImu,output);
+
                 QVector<double> data;
                 data.append(p->time*1e-5);
+
+                data.append(corImu[0]);
+                data.append(corImu[1]);
+                data.append(corImu[2]);
+                _plots[0]->addData(data);
+
+                data[1] = corImu[3];
+                data[2] = corImu[4];
+                data[3] = corImu[5];
+                _plots[1]->addData(data);
+
+                data.resize(output.size()+1);   //+1 for timestamp
+                data[0] = p->time*1e-5;
+                for(size_t i=0;i<output.size();i++)
+                {
+                    data[1+i] = output[i];
+                }
+                _plots[2]->addData(data);
+
+                float e[3];
+                _ahrs->getEuler(e);
+                emit updatePose(e);
+#if 0
                 data.append(p->imu[0]);
                 data.append(p->imu[1]);
                 data.append(p->imu[2]);
@@ -63,6 +102,7 @@ void ahrsDialog::ready()
                 data[2] = p->imu[4];
                 data[3] = p->imu[5];
                 _plots[1]->addData(data);
+#endif
             }
         }
         else if(r<0)
@@ -77,3 +117,16 @@ QList<qcpPlotView *> &ahrsDialog::plots()
 {
     return _plots;
 }
+
+QStringList ahrsDialog::output()
+{
+    QStringList header;
+    header.append("time");
+    for(const auto &i:_ahrs->output())
+    {
+        header.append(QString::fromStdString(i));
+    }
+    return header;
+}
+
+

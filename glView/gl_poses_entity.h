@@ -34,6 +34,8 @@ public:
 
     virtual QVector3D getCenter(void);
 
+    void setPose(int index, const pose_t &pose);
+
 public slots:
     void load(void);
 

@@ -54,6 +54,8 @@
     <addaction name="actionConfigure_3D_View"/>
     <addaction name="separator"/>
     <addaction name="actionMap_View"/>
+    <addaction name="separator"/>
+    <addaction name="actionTile"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -188,6 +190,11 @@
    </property>
    <property name="text">
     <string>Map View</string>
+   </property>
+  </action>
+  <action name="actionTile">
+   <property name="text">
+    <string>Tile</string>
    </property>
   </action>
  </widget>

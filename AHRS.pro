@@ -40,14 +40,20 @@ contains(DEFINES,USE_PLOT_VIEW):include(plotView/plotView.pri)
 contains(DEFINES,USE_MAP_VIEW):include(mapView/mapView.pri)
 
 SOURCES += \
+    ahrsCore.cpp \
     ahrsDialog.cpp \
+    ahrsEulerCF.cpp \
+    imuCore.cpp \
     main.cpp \
     MainWindow.cpp \
     ubxDecoder.cpp
 
 HEADERS += \
     MainWindow.h \
+    ahrsCore.h \
     ahrsDialog.h \
+    ahrsEulerCF.h \
+    imuCore.h \
     imuPacket.h \
     ubxDecoder.h
 

@@ -35,6 +35,8 @@ qcpPlotView::qcpPlotView(QVariantMap m, QWidget *parent): QCustomPlot(parent), c
 {
     customPlotView::setWidget(this);
 
+    _skipReplot=0;
+
     QList<QColor> colors;
     //colors << Qt::red << Qt::darkGreen << Qt::darkBlue << Qt::darkYellow << Qt::cyan << Qt::magenta;
     colors << QColor(0x00, 0x72, 0xbd)
@@ -56,6 +58,7 @@ qcpPlotView::qcpPlotView(QVariantMap m, QWidget *parent): QCustomPlot(parent), c
             QCPGraph *g=addGraph();
             g->setPen(QPen(colors[(i-1)%colors.size()],1.0,i<colors.size() ? Qt::SolidLine:Qt::DashLine));
             g->setName(header[i]);
+            g->setAdaptiveSampling(true);
         }
         _realtimeMode = REALTIME_AUTOSCROLL;
     }
@@ -238,11 +241,15 @@ void qcpPlotView::addData(const QVector<double> &data)
         }
     }
 
-    if(_realtimeMode == REALTIME_AUTOSCROLL)
+    if(++_skipReplot>=20)     // IMU data is too fast
     {
-        xAxis->setRange(x, xAxis->range().size(), Qt::AlignRight);
+        _skipReplot=0;
+        if(_realtimeMode == REALTIME_AUTOSCROLL)
+        {
+            xAxis->setRange(x, xAxis->range().size(), Qt::AlignRight);
+        }
+        replot();
     }
-    replot();
 }
 
 void qcpPlotView::uiTaskRequest(QVariantMap params)
