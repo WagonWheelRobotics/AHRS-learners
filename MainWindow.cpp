@@ -439,11 +439,21 @@ void MainWindow::on_actionSerial_port_triggered()
 
                 _ahrs->setPlots(plots);
 
-                connect(_ahrs, &ahrsDialog::updatePose, this, [=](float *euler){
+                connect(_ahrs, &ahrsDialog::updatePose, this, [=](float *output, bool isEuler){
                     pose_t pose;
                     pose.p = QVector3D();
-                    QVector3D rpy(euler[0],euler[1],euler[2]);
-                    rot::euler_to_quat(pose.q,rpy);
+                    if(isEuler)
+                    {
+                        QVector3D rpy(output[0],output[1],output[2]);
+                        rot::euler_to_quat(pose.q,rpy);
+                    }
+                    else
+                    {
+                        pose.q[0] = output[0];
+                        pose.q[1] = output[1];
+                        pose.q[2] = output[2];
+                        pose.q[3] = output[3];
+                    }
                     _pose->setPose(0,pose);
                     _glWidget->update();
                 });

@@ -43,6 +43,7 @@ SOURCES += \
     ahrsCore.cpp \
     ahrsDialog.cpp \
     ahrsEulerCF.cpp \
+    ahrsQuatCF.cpp \
     imuCore.cpp \
     main.cpp \
     MainWindow.cpp \
@@ -53,6 +54,7 @@ HEADERS += \
     ahrsCore.h \
     ahrsDialog.h \
     ahrsEulerCF.h \
+    ahrsQuatCF.h \
     imuCore.h \
     imuPacket.h \
     ubxDecoder.h

@@ -6,6 +6,7 @@
 #include "qcpPlotView.h"
 #include "imuCore.h"
 #include "ahrsEulerCF.h"
+#include "ahrsQuatCF.h"
 
 #include <QSerialPort>
 #include <QDebug>
@@ -18,7 +19,8 @@ ahrsDialog::ahrsDialog(QSerialPort *port, QWidget *parent) :
     _port = port;
 
     _imu = new imuCore;
-    _ahrs = new ahrsEulerCF(1.0f/200.0f);
+    //_ahrs = new ahrsEulerCF(1.0f/200.0f);
+    _ahrs = new ahrsQuatCF(1.0f/200.0f);
 
     _decoder = new ubxDecoder('W','2',65000);
     connect(_port, SIGNAL(readyRead()), this, SLOT(ready()));
@@ -89,9 +91,18 @@ void ahrsDialog::ready()
                 }
                 _plots[2]->addData(data);
 
-                float e[3];
-                _ahrs->getEuler(e);
-                emit updatePose(e);
+                if(_ahrs->outputIsEuler())
+                {
+                    float e[3];
+                    _ahrs->getEuler(e);
+                    emit updatePose(e,true);
+                }
+                else
+                {
+                    float q[4];
+                    _ahrs->getQuat(q);
+                    emit updatePose(q,false);
+                }
 #if 0
                 data.append(p->imu[0]);
                 data.append(p->imu[1]);

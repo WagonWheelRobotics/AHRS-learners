@@ -30,7 +30,7 @@ private slots:
     void ready(void);
 
 signals:
-    void updatePose(float *euler);
+    void updatePose(float *output, bool isEuler);
 
 private:
     Ui::ahrsDialog *ui;
